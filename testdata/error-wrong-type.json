@@ -1,0 +1,17 @@
+{
+   "order_uid": "b563feb7b2b84b6test",
+   "track_number": "WBILMTESTTRACK",
+   "entry": "WBIL",
+   "delivery": {
+      "name": "Test Testov"
+   },
+   "payment": {
+      "transaction": "b563feb7b2b84b6test"
+   },
+   "items": {
+      "chrt_id": 9934930,
+      "name": "This should be an array, not an object"
+   },
+   "customer_id": "test",
+   "date_created": "2021-11-26T06:22:19Z"
+}

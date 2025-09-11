@@ -1,0 +1,23 @@
+{
+   "track_number": "WBILMTESTTRACK",
+   "entry": "WBIL",
+   "delivery": {
+      "name": "Test Testov",
+      "phone": "+9720000000",
+      "zip": "2639809",
+      "city": "Kiryat Mozkin",
+      "address": "Ploshad Mira 15",
+      "region": "Kraiot",
+      "email": "test@gmail.com"
+   },
+   "payment": {
+      "transaction": "b563feb7b2b84b6test"
+   },
+   "items": [
+      {
+         "chrt_id": 9934930
+      }
+   ],
+   "customer_id": "test",
+   "date_created": "2021-11-26T06:22:19Z"
+}

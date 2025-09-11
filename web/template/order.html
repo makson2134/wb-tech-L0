@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о заказе</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 20px auto; padding: 0 20px; background-color: #f8f9fa; }
+        .container { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h1, h2 { color: #212529; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
+        form { margin-bottom: 25px; display: flex; gap: 10px; }
+        input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; }
+        button { padding: 10px 18px; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .error { color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-top: 20px; }
+        .order-details, .items-list { margin-top: 20px; }
+        .order-details p, .item { margin-bottom: 10px; padding: 10px; background-color: #e9ecef; border-radius: 4px; }
+        strong { color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Поиск заказа</h1>
+        <form action="/" method="GET">
+            <input type="text" name="order_uid" placeholder="Введите Order UID" value="{{ .UIDQuery }}" required>
+            <button type="submit">Найти</button>
+        </form>
+
+        {{ if .Error }}
+            <p class="error"><strong>Ошибка:</strong> {{ .Error }}</p>
+        {{ end }}
+
+        {{ if .Order }}
+            <div class="order-details">
+                <h2>Детали заказа: {{ .Order.OrderUID }}</h2>
+                <p><strong>Track Number:</strong> {{ .Order.TrackNumber }}</p>
+                <p><strong>Клиент:</strong> {{ .Order.CustomerID }}</p>
+                <p><strong>Дата создания:</strong> {{ .Order.DateCreated.Format "02.01.2006 15:04:05 MST" }}</p>
+                
+                <h3>Информация о доставке</h3>
+                <p><strong>Имя:</strong> {{ .Order.Delivery.Name }}</p>
+                <p><strong>Телефон:</strong> {{ .Order.Delivery.Phone }}</p>
+                <p><strong>Адрес:</strong> {{ .Order.Delivery.City }}, {{ .Order.Delivery.Address }}</p>
+
+                <h3>Информация об оплате</h3>
+                <p><strong>Транзакция:</strong> {{ .Order.Payment.Transaction }}</p>
+                <p><strong>Валюта:</strong> {{ .Order.Payment.Currency }}</p>
+                <p><strong>Сумма:</strong> {{ .Order.Payment.Amount }}</p>
+            </div>
+
+            <div class="items-list">
+                <h2>Товары в заказе ({{ len .Order.Items }})</h2>
+                {{ range .Order.Items }}
+                    <div class="item">
+                        <p><strong>ID товара (chrt_id):</strong> {{ .ChrtID }}</p>
+                        <p><strong>Бренд:</strong> {{ .Brand }}</p>
+                        <p><strong>Название:</strong> {{ .Name }}</p>
+                        <p><strong>Цена:</strong> {{ .Price }} | <strong>Скидка:</strong> {{ .Sale }}% | <strong>Итого:</strong> {{ .TotalPrice }}</p>
+                    </div>
+                {{ end }}
+            </div>
+        {{ end }}
+    </div>
+</body>
+</html>

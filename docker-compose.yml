@@ -1,0 +1,94 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_CLIENT_PORT:-2181}
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TICK_TIME:-2000}
+    ports:
+      - "${ZOOKEEPER_PORT:-2181}:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9092}:9092"
+      - "${KAFKA_INTERNAL_PORT:-9093}:9093"
+    environment:
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID:-1}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_CLIENT_PORT:-2181}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT:-9093},PLAINTEXT_HOST://localhost:${KAFKA_EXTERNAL_PORT:-9092}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_MIN_ISR:-1}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS:-true}
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:${KAFKA_INTERNAL_PORT:-9093}", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -c "
+        kafka-topics --bootstrap-server kafka:${KAFKA_INTERNAL_PORT:-9093} --list &&
+        kafka-topics --bootstrap-server kafka:${KAFKA_INTERNAL_PORT:-9093} --create --if-not-exists --topic ${KAFKA_TOPIC:-orders} --replication-factor ${KAFKA_REPLICATION_FACTOR:-1} --partitions ${KAFKA_PARTITIONS:-1} &&
+        echo 'Topic ${KAFKA_TOPIC:-orders} created successfully'
+      "
+    restart: "no"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-orders}
+      POSTGRES_USER: ${DB_USER:-orders_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-orders_password}
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-orders_user} -d ${DB_NAME:-orders}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  server:
+    build:
+      context: .
+      dockerfile: cmd/server/Dockerfile
+    ports:
+      - "8081:8081"    # Основной HTTP сервер
+      - "6060:6060"    # pprof сервер
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  producer:
+    build:
+      context: .
+      dockerfile: cmd/producer/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    volumes:
+      - ./testdata:/testdata:ro
+
+volumes:
+  postgres_data:
